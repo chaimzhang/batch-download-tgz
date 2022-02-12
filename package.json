@@ -6,7 +6,11 @@
   "scripts": {
     "start": "ts-node src/main.ts"
   },
-  "author": "chaimzhang",
+  "author": {
+    "name": "chaimzhang",
+    "url": "https://github.com/chaimzhang/batch-download-tgz",
+    "email": "zhang.qm@qq.com"
+  },
   "license": "MIT",
   "dependencies": {
   },
