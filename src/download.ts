@@ -1,8 +1,10 @@
-import {Dependence, Flag, Pkg} from "./typedef";
+import {createHash} from 'crypto';
+import {nanoid} from 'nanoid';
+import {Dependence, Flag, Pkg} from './typedef';
 import fs from 'fs';
-import path from 'path'
-import request from "request";
-import {clearDir, mkdirsSync} from "./util";
+import path from 'path';
+import request from 'request';
+import {clearDir, mkdirsSync} from './util';
 
 /**
  * 下载tgz文件
@@ -10,22 +12,33 @@ import {clearDir, mkdirsSync} from "./util";
  * @param flag 标志对象
  */
 function downloadTgz(pkg: Pkg, flag: Flag) {
-
-    if (fs.existsSync(pkg.savePath + pkg.name)) {
-        flag.total--;
-        return;
-    }
+    
     if (!fs.existsSync(pkg.savePath)) {
         mkdirsSync(pkg.savePath);
     }
-
-    const stream = fs.createWriteStream(path.join(pkg.savePath, pkg.name), {autoClose: true});
+    
+    const stream = fs.createWriteStream(path.join(pkg.savePath, pkg.tempName), {autoClose: true});
+    
     request(pkg.resolved).pipe(stream).on('finish', () => {
+        const buffer = fs.readFileSync(path.join(pkg.savePath, pkg.tempName));
+        const hash = createHash('md5');
+        hash.update(buffer);
+        
+        const md5 = hash.digest('hex');
+        const name = pkg.name + '__' + md5 + '.tgz';
+        if (fs.existsSync(pkg.savePath + name)) {
+            fs.unlinkSync(path.join(pkg.savePath, pkg.tempName));
+            flag.total--;
+            return;
+        }
+        
+        fs.renameSync(path.join(pkg.savePath, pkg.tempName), path.join(pkg.savePath, name));
+        
         flag.success++;
-        downloadEnd(flag, pkg.name)
+        downloadEnd(flag, pkg.name);
     }).on('error', () => {
         flag.failedList.push(pkg.name + '/n');
-        downloadEnd(flag, pkg.name)
+        downloadEnd(flag, pkg.name);
     });
 }
 
@@ -53,7 +66,8 @@ function downloadEnd(flag: Flag, name: string) {
  */
 function download(path: string) {
     if (fs.existsSync(`${path}package-lock.json`)) {
-        const {dependencies} = JSON.parse(fs.readFileSync(`${path}package-lock.json`, "utf-8")) as { dependencies: Record<string, Dependence> };
+        const {dependencies} = JSON.parse(
+            fs.readFileSync(`${path}package-lock.json`, 'utf-8')) as { dependencies: Record<string, Dependence> };
         const keys = Object.keys(dependencies);
         const tgzPath = path + 'tgzs/';
         if (fs.existsSync(tgzPath)) {
@@ -66,14 +80,15 @@ function download(path: string) {
             current: 0,
             success: 0,
             failedList: []
-        }
+        };
         for (const key of keys) {
             const list = key.split('/');
-            const name = list[list.length - 1] + '-' + dependencies[key].version + '.tgz';
+            const name = list[list.length - 1] + '-' + dependencies[key].version;
             const pkg: Pkg = {
                 ...dependencies[key],
-                savePath: tgzPath + key + '/',
+                savePath: tgzPath,
                 name,
+                tempName: nanoid()
             };
             downloadTgz(pkg, flag);
         }

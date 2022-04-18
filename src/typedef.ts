@@ -36,4 +36,6 @@ export interface Pkg extends Dependence {
     name: string;
     /** 保存的路径 */
     savePath: string;
+    /** 临时名 */
+    tempName:string;
 }

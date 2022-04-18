@@ -1,5 +1,5 @@
 import {start} from "./download";
 
-const path = './axios-tgz/';
+const path = './web-types/';
 
 start(path);
