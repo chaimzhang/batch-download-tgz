@@ -18,7 +18,9 @@ function downloadTgz(pkg: Pkg, flag: Flag) {
     }
     
     const stream = fs.createWriteStream(path.join(pkg.savePath, pkg.tempName), {autoClose: true});
-    
+    if (typeof pkg.resolved=== 'undefined') {
+        return;
+    }
     request(pkg.resolved).pipe(stream).on('finish', () => {
         const buffer = fs.readFileSync(path.join(pkg.savePath, pkg.tempName));
         const hash = createHash('md5');
@@ -83,7 +85,7 @@ function download(path: string) {
         };
         for (const key of keys) {
             const list = key.split('/');
-            const name = list[list.length - 1] + '-' + dependencies[key].version;
+            const name = list[list.length - 1] + '-' + (dependencies[key].version).replace(/[\\\/:*?\"<>|]/g,"");
             const pkg: Pkg = {
                 ...dependencies[key],
                 savePath: tgzPath,
