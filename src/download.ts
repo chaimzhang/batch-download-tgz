@@ -6,26 +6,28 @@ import path from 'path';
 import request from 'request';
 import {clearDir, mkdirsSync} from './util';
 
+let succeed_callback: () => void;
+
 /**
  * 下载tgz文件
  * @param pkg 包信息
  * @param flag 标志对象
  */
 function downloadTgz(pkg: Pkg, flag: Flag) {
-    
+
     if (!fs.existsSync(pkg.savePath)) {
         mkdirsSync(pkg.savePath);
     }
-    
+
     const stream = fs.createWriteStream(path.join(pkg.savePath, pkg.tempName), {autoClose: true});
-    if (typeof pkg.resolved=== 'undefined') {
+    if (typeof pkg.resolved === 'undefined') {
         return;
     }
     request(pkg.resolved).pipe(stream).on('finish', () => {
         const buffer = fs.readFileSync(path.join(pkg.savePath, pkg.tempName));
         const hash = createHash('md5');
         hash.update(buffer);
-        
+
         const md5 = hash.digest('hex');
         const name = pkg.name + '__' + md5 + '.tgz';
         if (fs.existsSync(pkg.savePath + name)) {
@@ -33,9 +35,9 @@ function downloadTgz(pkg: Pkg, flag: Flag) {
             flag.total--;
             return;
         }
-        
+
         fs.renameSync(path.join(pkg.savePath, pkg.tempName), path.join(pkg.savePath, name));
-        
+
         flag.success++;
         downloadEnd(flag, pkg.name);
     }).on('error', () => {
@@ -55,6 +57,7 @@ function downloadEnd(flag: Flag, name: string) {
     if (flag.current === flag.total) {
         if (flag.success === flag.total) {
             console.log(flag.total + '个全部下载成功！');
+            succeed_callback?.();
         } else {
             console.log(`下载结束，成功${flag.total - flag.success}个，失败${flag.failedList.length}个：`);
             console.log(flag.failedList);
@@ -85,7 +88,7 @@ function download(path: string) {
         };
         for (const key of keys) {
             const list = key.split('/');
-            const name = list[list.length - 1] + '-' + (dependencies[key].version).replace(/[\\\/:*?\"<>|]/g,"");
+            const name = list[list.length - 1] + '-' + (dependencies[key].version).replace(/[\\\/:*?\"<>|]/g, "");
             const pkg: Pkg = {
                 ...dependencies[key],
                 savePath: tgzPath,
@@ -100,10 +103,12 @@ function download(path: string) {
 /**
  * 开始下载
  * @param path 存在 package-lock.json 的文件夹路径
+ * @param callback 下载成功后回调
  */
-export function start(path: string) {
+export function start(path: string, callback?: () => any) {
+    succeed_callback=callback;
     const stats = fs.statSync(path);
-    if (stats.isDirectory() && fs.existsSync(path + 'package-lock.json')) {
+    if (stats.isDirectory() && fs.existsSync(path + '/package-lock.json')) {
         download(path);
     }
 }

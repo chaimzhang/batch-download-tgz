@@ -1,12 +1,19 @@
 # Batch-Download-Tgz
-根据`package-lock.json`下载所有依赖包的`tgz`文件。
 
-## 以下载`axios`依赖为例
-### 1.生成`package-lock.json`文件
-- 在本项目根目录新建文件夹，如`axios-tgz`。
-- 在`axios-tgz`目录执行命令`npm init`,一路回车到结束。
-- 在`axios-tgz`目录执行命令`npm i axios --package-lock-only`,生成`package-lock.json`文件。
-### 2.下载tgz
-- 将`src/main.ts` 文件中的第三行改为 `const path = './axios-tgz/'`。
+- 在内网开发时需要从外网导入依赖，一个依赖背后又有多层依赖，手动下载费时费力无法完成。 因此开发此脚本项目用于自动下载依赖及相关依赖。
+- 本质是利用npm安装时生成的`package-lock.json`文件中依赖项的地址循环下载。
+
+## 两种使用方式
+
+### 1.根据`package-lock.json`下载所有依赖包的`tgz`文件。
+
+若只有`package.json`文件，可先执行`npm i --package-lock-only`,生成`package-lock.json`文件。
+
+- 将`src/main.ts` 文件中的第三行path改为目标`package-lock.json`文件所在路径。
 - 执行`npm run start`命令。
-- 成功后可以看到下载的所有依赖保存在`axios-tgz/tgzs`中。
+- 控制台提示成功后可看到目录下tgzs文件夹内已下载的依赖文件。
+
+### 2.根据依赖名称下载所有依赖包的`tgz`文件。
+- 执行`npm run cli`命令。
+- 根据提示输入依赖的名称
+- 控制台提示成功后可看到下载完成的目录。
