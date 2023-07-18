@@ -24,6 +24,8 @@ export interface Dependence {
     resolved: string;
     /** 版本号 */
     version: string;
+    /** sha512 */
+    integrity: string;
 }
 
 /**
@@ -36,6 +38,4 @@ export interface Pkg extends Dependence {
     name: string;
     /** 保存的路径 */
     savePath: string;
-    /** 临时名 */
-    tempName:string;
 }

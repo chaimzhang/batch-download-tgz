@@ -1,10 +1,8 @@
-import {createHash} from 'crypto';
-import {nanoid} from 'nanoid';
 import {Dependence, Flag, Pkg} from './typedef';
 import fs from 'fs';
-import path from 'path';
 import request from 'request';
 import {clearDir, mkdirsSync} from './util';
+import {join} from 'path';
 
 let succeed_callback: () => void;
 
@@ -13,33 +11,19 @@ let succeed_callback: () => void;
  * @param pkg 包信息
  * @param flag 标志对象
  */
-function downloadTgz(pkg: Pkg, flag: Flag) {
+async function downloadTgz(pkg: Pkg, flag: Flag) {
 
-    if (!fs.existsSync(pkg.savePath)) {
-        mkdirsSync(pkg.savePath);
-    }
+    const stream = fs.createWriteStream(join(pkg.savePath, pkg.name), {autoClose: true});
 
-    const stream = fs.createWriteStream(path.join(pkg.savePath, pkg.tempName), {autoClose: true});
-    if (typeof pkg.resolved === 'undefined') {
-        return;
-    }
-    request(pkg.resolved).pipe(stream).on('finish', () => {
-        const buffer = fs.readFileSync(path.join(pkg.savePath, pkg.tempName));
-        const hash = createHash('md5');
-        hash.update(buffer);
-
-        const md5 = hash.digest('hex');
-        const name = pkg.name + '__' + md5 + '.tgz';
-        if (fs.existsSync(pkg.savePath + name)) {
-            fs.unlinkSync(path.join(pkg.savePath, pkg.tempName));
+    await request(pkg.resolved, {timeout: 60 * 1000 * 60,}).pipe(stream).on('finish', () => {
+        const name = pkg.name + '.tgz';
+        if (fs.existsSync(join(pkg.savePath, pkg.name))) {
+            fs.renameSync(join(pkg.savePath, pkg.name), join(pkg.savePath, name));
+            flag.success++;
+            downloadEnd(flag, pkg.name);
+        } else {
             flag.total--;
-            return;
         }
-
-        fs.renameSync(path.join(pkg.savePath, pkg.tempName), path.join(pkg.savePath, name));
-
-        flag.success++;
-        downloadEnd(flag, pkg.name);
     }).on('error', () => {
         flag.failedList.push(pkg.name + '/n');
         downloadEnd(flag, pkg.name);
@@ -69,11 +53,11 @@ function downloadEnd(flag: Flag, name: string) {
  * 下载
  * @param path 路径
  */
-function download(path: string) {
+async function download(path: string) {
     if (fs.existsSync(`${path}package-lock.json`)) {
-        const {dependencies} = JSON.parse(
-            fs.readFileSync(`${path}package-lock.json`, 'utf-8')) as { dependencies: Record<string, Dependence> };
-        const keys = Object.keys(dependencies);
+        const {packages} = JSON.parse(
+            fs.readFileSync(`${path}package-lock.json`, 'utf-8')) as { packages: Record<string, Dependence> };
+        const keys = Object.keys(packages).filter(a => !!a);
         const tgzPath = path + 'tgzs/';
         if (fs.existsSync(tgzPath)) {
             clearDir(tgzPath);
@@ -88,14 +72,18 @@ function download(path: string) {
         };
         for (const key of keys) {
             const list = key.split('/');
-            const name = list[list.length - 1] + '-' + (dependencies[key].version).replace(/[\\\/:*?\"<>|]/g, "");
+            const name = list[list.length - 1] + '-' + (packages[key].version).replace(/[\\\/:*?\"<>|]/g, "");
             const pkg: Pkg = {
-                ...dependencies[key],
+                ...packages[key],
                 savePath: tgzPath,
-                name,
-                tempName: nanoid()
+                name
             };
-            downloadTgz(pkg, flag);
+            if (typeof pkg.resolved === 'undefined' || fs.existsSync(join(pkg.savePath, pkg.name)) || fs.existsSync(join(pkg.savePath, pkg.name + '.tgz'))) {
+                flag.total--;
+                console.log('delete ' + pkg.name)
+                break;
+            }
+            await downloadTgz(pkg, flag).then();
         }
     }
 }
@@ -106,7 +94,7 @@ function download(path: string) {
  * @param callback 下载成功后回调
  */
 export function start(path: string, callback?: () => any) {
-    succeed_callback=callback;
+    succeed_callback = callback;
     const stats = fs.statSync(path);
     if (stats.isDirectory() && fs.existsSync(path + '/package-lock.json')) {
         download(path);

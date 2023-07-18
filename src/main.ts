@@ -1,5 +1,5 @@
 import {start} from "./download";
 
-const path = './web-types/';
+const path = './jq/';
 
 start(path);
