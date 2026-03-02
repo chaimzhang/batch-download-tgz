@@ -1,11 +1,15 @@
 {
   "name": "batch-download-tgz",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "batch-download-tgz",
   "main": "src/main.ts",
   "scripts": {
     "start": "ts-node src/main.ts",
-    "cli": "ts-node src/cli.ts"
+    "cli": "ts-node src/cli.ts",
+    "build": "tsc"
+  },
+  "bin": {
+    "command": "node ./dist/src/bin.js"
   },
   "author": {
     "name": "chaimzhang",
@@ -15,12 +19,14 @@
   "license": "MIT",
   "dependencies": {
     "chalk": "^5.0.1",
+    "commander": "^13.0.0",
     "dayjs": "^1.11.7",
     "fix-esm": "^1.0.1",
     "inquirer": "^9.0.0",
     "nanoid": "^3.0.0",
     "progress-estimator": "^0.3.0",
-    "shelljs": "^0.8.5"
+    "shelljs": "^0.8.5",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@types/inquirer": "^8.2.1",

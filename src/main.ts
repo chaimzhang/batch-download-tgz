@@ -1,5 +1,8 @@
-import {start} from "./download";
+import {startBatch} from "./download";
 
-const path = './jq/';
+// const path = './capactior/';
 
-start(path);
+
+// start(path);
+const patchPathRoot = './task';
+startBatch(`${patchPathRoot}/`);

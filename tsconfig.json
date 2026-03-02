@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
     "rootDir": "./",
-    "outDir": "./dist/tsc",
+    "outDir": "./dist",
     "sourceMap": true,
     "target": "esnext",
     "module": "commonjs",
+    "declarationDir": "./dist/types",
     "declaration": true,
-    "declarationMap": true,
+    "declarationMap": false,
     "importHelpers": true,
     "isolatedModules": true,
     "allowSyntheticDefaultImports": true,
@@ -14,6 +15,7 @@
     "forceConsistentCasingInFileNames": true,
     "strict": false,
     "noImplicitAny": false,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true
   }
 }
